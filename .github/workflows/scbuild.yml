@@ -1,0 +1,50 @@
+name: Build Aseprite
+
+on:
+  workflow_dispatch: # 允许你随时在 GitHub 网页上点击按钮手动触发编译
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+    - name: Checkout Aseprite Source
+      uses: actions/checkout@v4
+      with:
+        repository: 'aseprite/aseprite'
+        ref: 'main' # 或者指定特定版本号，如 'v1.3.12'
+        submodules: 'recursive'
+
+    - name: Install Dependencies
+      uses: aseprite/find-ninja@main
+
+    - name: Download Skia
+      run: |
+        # 自动化下载 Aseprite 官方修改版的 Skia
+        curl -L -o skia.zip https://github.com/aseprite/skia/releases/download/m102-861e4743af/Skia-Windows-Release-x64.zip
+        expand-archive skia.zip -DestinationPath cmake/skia
+
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake -G Ninja `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DLAF_BACKEND=skia `
+          -DSKIA_DIR=../cmake/skia `
+          -DSKIA_LIBRARY_DIR=../cmake/skia/out/Release-x64 `
+          -DSKIA_LIBRARY=../cmake/skia/out/Release-x64/skia.lib `
+          ..
+
+    - name: Run Ninja Build
+      run: |
+        cd build
+        ninja aseprite
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: aseprite-windows
+        # 只需要打包 bin 目录下的可执行文件和必要的数据文件
+        path: |
+          build/bin/aseprite.exe
+          build/bin/data
