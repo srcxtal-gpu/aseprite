@@ -1,5 +1,6 @@
 name: build
-on: [push, pull_request]
+on:
+  workflow_dispatch: # 允许你在 GitHub 网页上点击按钮手动触发编译
 jobs:
   build:
     runs-on: ${{ matrix.os }}
